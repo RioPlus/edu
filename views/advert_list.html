@@ -43,80 +43,119 @@
                         <th>操作</th>
                     </tr>
                 </thead>
-                <tbody>
-
-                    {% for item in adverts %}
-                    <tr>
-                        <td>0</td>
-                        <td>{{item.title}}</td>
-                        <td>
-                                <!-- {{item.image}} -->
-                            <img src="/public/uploads/{{item.image}}" width="100px" alt="">
-                            </td>
-                        <td>{{item.link}}</td>
-                        <td>{{item.start_time}}</td>
-                        <td>{{item.end_time}}</td>
-                        <td>1</td>
-                        <td>
-                            <a href="javascript:;" class="btn btn-info btn-xs">编辑</a>
-                            <a href="javascript:;" class="btn btn-danger btn-xs">删除</a>
-                        </td>
-
-                    </tr>
-
-                    {% endfor %}
-                    <!-- <tr>
-                        <td>1</td>
-                        <td>随便一个名称</td>
-                        <td>视频</td>
-                        <td>2016/10/01</td>
-                        <td>2016/10/07</td>
-                        <td>126</td>
-                        <td>
-                            <a href="javascript:;" class="btn btn-info btn-xs">编辑</a>
-                            <a href="javascript:;" class="btn btn-danger btn-xs">删除</a>
-                        </td>
-                    </tr> -->
-
+                <tbody id='tbody'>
                 </tbody>
             </table>
         </div>
         <!-- 分页 -->
-        <ul class="pagination pull-right">
-                {% if page-1>0 %}
-                <li class="page-item"><a  class="page-link" href="/advert/?page={{page-1}}">上一页</a></li>
-                {% else %}
-                <li class="page-item disabled"><a  class="page-link" href="/advert/?page={{page-1}}">上一页</a></li>
-                {% endif %}
-                <!-- <li><a href="#">1</a></li>
-                <li><a href="#">2</a></li>
-                <li><a href="#">3</a></li>
-                <li><a href="#">4</a></li>
-                <li><a href="#">5</a></li> -->
-    
-                {% for i in range(0, totalPage) -%}
-                {% if i+1 === page %}
-                <li class='page-item active'><a class="page-link" href="/advert/?page={{i+1}}">{{i+1}}</a></li>
-    
-                {% else %}
-                <li class="page-item"><a class="page-link" href="/advert/?page={{i+1}}">{{i+1}}</a></li>
-                {% endif %}
-    
-    
-                {%- endfor %}
-    
-                {% if page+1 < totalPage %}
-                <li class="page-item"><a  class="page-link" href="/advert/?page={{page-1}}">下一页</a></li>
-                {% else %}
-                <li class="page-item disabled"><a  class="page-link" href="/advert/?page={{page-1}}">下一页</a></li>
-                {% endif %}
+        <ul id="pagination" class="pagination pull-right">
+
         </ul>
     </div>
 </div>
-
+<!-- 這裏使用的是art-template模板引擎渲染 -->
+<script type="text/template" id="tpl">
+        <% adverts.forEach(function(item,index) { %>
+        <tr>
+            <td><%= index +1 %></td>
+            <td><%= item.title %></td>
+            <td>
+                    <!-- <%=item.image%> -->
+                <img src="/public/uploads/<%=item.image%>" style="width:100px;height:72px" alt="">
+                </td>
+            <td><%= item.link %></td>
+            <td><%= item.start_time %></td>
+            <td><%= item.end_time %></td>
+            <td>1</td>
+            <td>
+                <a href="/advert/edit/<%= item._id %>" class="btn btn-info btn-xs">编辑</a>
+                <a href="javascript:;" data-id='<%= item._id %>' class="btn btn-danger btn-xs">删除</a>
+            </td>
+    
+        </tr>
+    
+        <% }) %>
+</script>
 {% endblock %}
 
-
 {% block script %}
+<script src="../node_modules/art-template/lib/template-web.js"></script>
+<script src="../node_modules/twbs-pagination/jquery.twbsPagination.js"></script>
 
+<script>
+
+    let page_size = 5;
+
+    $.ajax({
+        url: '/advert/count',
+        type: "get",
+        success: function (data) {
+            console.log(data)
+            if (data.error_code === 0) {
+                $('#pagination').twbsPagination({
+                    totalPages: Math.ceil(data.result / page_size), // 總頁數
+                    visiblePages: 7, // 可以顯示的分頁格子
+                    first: '首頁',
+                    prev: "上一頁",
+                    next: "下一頁",
+                    last: '結束頁',
+
+                    onPageClick: function (event, page) {
+                        // $('#page-content').text('Page ' + page);
+                        loadData(page)
+                    }
+                });
+            }
+        }
+    })
+
+
+    function loadData(page) {
+        $.ajax({
+            url: '/advert/list',
+            type: 'get',
+            data: {
+                page: page,
+                pageSize: page_size
+            },
+            dataType: 'json',
+            success: function (data) {
+                // console.log(data)
+                if (data.error_code === 0) {
+                    var htmlStr = template('tpl', {
+                        adverts: data.result
+                    })
+
+                    $("#tbody").html(htmlStr)
+
+                }
+
+            }
+        })
+    }
+
+
+    $(document).on("click", ".btn-danger", function () {
+        var id = $(this).attr('data-id')
+        $.ajax({
+            url: '/advert/remove',
+            type: 'get',
+            data: {
+                id: id
+            },
+            dataType: 'json',
+            success: function (data) {
+                loadData(1)
+            }
+
+        })
+    });
+
+
+</script>
+
+
+<script>
+    var foo = "{{foo}}"
+</script>
 {% endblock %}
